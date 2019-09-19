@@ -82,11 +82,6 @@ func (p *Pipe) Next() (json.RawMessage, error) {
 	}
 	p.stdout.Close()
 
-	if err == io.EOF {
-		p.jq.Wait()
-		return nil, err
-	}
-
 	// if we have a decoding error, jq is sick and we need to kill it with fire..
 	if err != io.EOF {
 		p.Close()
@@ -102,7 +97,7 @@ func (p *Pipe) Next() (json.RawMessage, error) {
 		return nil, errors.New(p.stderr.String())
 	}
 
-	if p.jq.ProcessState.Success() {
+	if p.jq.ProcessState.Success() || err == io.EOF {
 		return nil, io.EOF
 	}
 
