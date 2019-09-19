@@ -2,6 +2,7 @@ package jq
 
 import (
 	"encoding/json"
+	"sync"
 	"testing"
 )
 
@@ -59,4 +60,23 @@ func failEval(t *testing.T, inp, expr string, results []json.RawMessage, layout 
 	}
 	t.Errorf(layout, info...)
 	return false
+}
+
+func TestJQEvalRaceCondition(t *testing.T) {
+	t.Parallel()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			_, err := Eval(`{ "foo": { "bar": { "baz": 123 } } }`, ".")
+			if err != nil {
+				t.Errorf("err should be nil: %s", err)
+			}
+		}()
+	}
+
+	wg.Wait()
 }
